@@ -1,0 +1,190 @@
+{
+  "schemaVersion": "1.0",
+  "id": "community.swtcg-deckdb",
+  "name": "SWTCG Deck Database",
+  "version": "1.0.0",
+  "breakingVersion": 1,
+  "summary": "Import Star Wars TCG decklists from swtcg-deckdb.com by deck id.",
+  "description": "Reads public decklists from the community-run Star Wars TCG Deck Database.\n\nThis plugin supplies DECKLISTS ONLY - ordered card names and counts. It does not supply card data or card art, because the provider has no card-search endpoint and its bulk dataset exceeds the platform response ceiling. A mod using this plugin is expected to ship its own card catalogue and resolve names against it.\n\nOnly public decks are readable. Nothing is written back, and no viewer identity is sent upstream.",
+  "compatibility": { "engine": ">=0.1 <1.0" },
+  "capabilities": {
+    "version": "1",
+    "allowed": ["network"]
+  },
+  "origins": ["swtcg-deckdb.com"],
+  "endpoints": [
+    {
+      "name": "deckById",
+      "origin": "swtcg-deckdb.com",
+      "method": "GET",
+      "path": "/api/decks/{deckId}",
+      "params": [
+        {
+          "name": "deckId",
+          "location": "path",
+          "format": "token",
+          "required": true,
+          "description": "The 6-character deck id from a /deck/<id> permalink."
+        }
+      ],
+      "auth": { "kind": "none" },
+      "returns": "raw",
+      "description": "One public deck: main list plus supply."
+    },
+    {
+      "name": "publicDecks",
+      "origin": "swtcg-deckdb.com",
+      "method": "GET",
+      "path": "/api/decks",
+      "params": [],
+      "auth": { "kind": "none" },
+      "returns": "raw",
+      "description": "Summaries of every public deck. Card lists are not included."
+    },
+    {
+      "name": "starterDecks",
+      "origin": "swtcg-deckdb.com",
+      "method": "GET",
+      "path": "/api/starters",
+      "params": [],
+      "auth": { "kind": "none" },
+      "returns": "raw",
+      "description": "The official starter decks, with full card lists."
+    }
+  ],
+  "deckImport": {
+    "endpoint": "deckById",
+    "param": "deckId",
+    "label": "Deck id or swtcg-deckdb.com link",
+    "matchField": "name",
+    "namePath": "name",
+    "root": "cards",
+    "entry": {
+      "count": { "path": "count", "transforms": ["number"], "default": 1, "required": false },
+      "match": { "path": "name", "transforms": ["trim"], "required": true }
+    },
+    "partitions": [{ "root": "supply", "partitionId": "supply" }]
+  },
+  "exposedApi": [
+    {
+      "name": "deckById",
+      "summary": "Fetch one public decklist by its deck id.",
+      "endpoint": "deckById",
+      "params": {
+        "type": "object",
+        "fields": {
+          "deckId": { "schema": { "type": "string", "maxLength": 16 } }
+        }
+      },
+      "returns": {
+        "type": "object",
+        "fields": {
+          "name": { "schema": { "type": "string", "maxLength": 200 } },
+          "format": { "schema": { "type": "string", "maxLength": 60, "nullable": true }, "optional": true },
+          "pool": { "schema": { "type": "string", "maxLength": 60, "nullable": true }, "optional": true },
+          "side": { "schema": { "type": "string", "maxLength": 4, "nullable": true }, "optional": true },
+          "owner_username": { "schema": { "type": "string", "maxLength": 120, "nullable": true }, "optional": true },
+          "played_by": { "schema": { "type": "string", "maxLength": 120, "nullable": true }, "optional": true },
+          "is_public": { "schema": { "type": "boolean", "nullable": true }, "optional": true },
+          "created_at": { "schema": { "type": "string", "maxLength": 60, "nullable": true }, "optional": true },
+          "cards": {
+            "schema": {
+              "type": "array",
+              "maxItems": 500,
+              "items": {
+                "type": "object",
+                "fields": {
+                  "count": { "schema": { "type": "number", "integer": true, "min": 1, "max": 100 } },
+                  "name": { "schema": { "type": "string", "maxLength": 200 } },
+                  "setCode": { "schema": { "type": "string", "maxLength": 16 }, "optional": true }
+                }
+              }
+            }
+          },
+          "supply": {
+            "schema": {
+              "type": "array",
+              "maxItems": 200,
+              "items": {
+                "type": "object",
+                "fields": {
+                  "count": { "schema": { "type": "number", "integer": true, "min": 1, "max": 100 } },
+                  "name": { "schema": { "type": "string", "maxLength": 200 } },
+                  "setCode": { "schema": { "type": "string", "maxLength": 16 }, "optional": true }
+                }
+              }
+            },
+            "optional": true
+          }
+        }
+      },
+      "acceptsTableData": false
+    },
+    {
+      "name": "starterDecks",
+      "summary": "List the official starter decks with their full card lists.",
+      "endpoint": "starterDecks",
+      "params": { "type": "object", "fields": {} },
+      "returns": {
+        "type": "array",
+        "maxItems": 100,
+        "items": {
+          "type": "object",
+          "fields": {
+            "name": { "schema": { "type": "string", "maxLength": 200 }, "optional": true },
+            "side": { "schema": { "type": "string", "maxLength": 4 }, "optional": true },
+            "cards": {
+              "schema": {
+                "type": "array",
+                "maxItems": 500,
+                "items": {
+                  "type": "object",
+                  "fields": {
+                    "count": { "schema": { "type": "number", "integer": true, "min": 1, "max": 100 } },
+                    "name": { "schema": { "type": "string", "maxLength": 200 } },
+                    "setCode": { "schema": { "type": "string", "maxLength": 16 }, "optional": true }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "acceptsTableData": false
+    },
+    {
+      "name": "publicDecks",
+      "summary": "Browse summaries of every public deck. No card lists.",
+      "endpoint": "publicDecks",
+      "params": { "type": "object", "fields": {} },
+      "returns": {
+        "type": "array",
+        "maxItems": 2000,
+        "items": {
+          "type": "object",
+          "fields": {
+            "id": { "schema": { "type": "string", "maxLength": 16 } },
+            "name": { "schema": { "type": "string", "maxLength": 200 } },
+            "format": { "schema": { "type": "string", "maxLength": 60, "nullable": true }, "optional": true },
+            "pool": { "schema": { "type": "string", "maxLength": 60, "nullable": true }, "optional": true },
+            "side": { "schema": { "type": "string", "maxLength": 4, "nullable": true }, "optional": true },
+            "card_count": { "schema": { "type": "number", "integer": true, "min": 0, "max": 10000, "nullable": true }, "optional": true },
+            "owner_username": { "schema": { "type": "string", "maxLength": 120, "nullable": true }, "optional": true },
+            "played_by": { "schema": { "type": "string", "maxLength": 120, "nullable": true }, "optional": true },
+            "created_at": { "schema": { "type": "string", "maxLength": 60, "nullable": true }, "optional": true }
+          }
+        }
+      },
+      "acceptsTableData": false
+    }
+  ],
+  "attribution": "Decklists from the Star Wars TCG Deck Database (swtcg-deckdb.com), a fan project. Not affiliated with or endorsed by Wizards of the Coast, Lucasfilm or Disney.",
+  "termsUrl": "https://swtcg-deckdb.com/about",
+  "rateLimits": {
+    "requestsPerMinute": 20,
+    "requestsPerDay": 5000,
+    "maxConcurrent": 1
+  },
+  "license": "MIT",
+  "tags": ["cards", "tcg", "star-wars", "decklists"]
+}
