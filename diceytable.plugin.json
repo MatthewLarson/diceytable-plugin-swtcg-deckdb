@@ -2,16 +2,23 @@
   "schemaVersion": "1.0",
   "id": "community.swtcg-deckdb",
   "name": "SWTCG Deck Database",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "breakingVersion": 1,
-  "summary": "Import Star Wars TCG decklists from swtcg-deckdb.com by deck id.",
-  "description": "Reads public decklists from the community-run Star Wars TCG Deck Database.\n\nThis plugin supplies DECKLISTS ONLY - ordered card names and counts. It does not supply card data or card art, because the provider has no card-search endpoint and its bulk dataset exceeds the platform response ceiling. A mod using this plugin is expected to ship its own card catalogue and resolve names against it.\n\nOnly public decks are readable. Nothing is written back, and no viewer identity is sent upstream.",
-  "compatibility": { "engine": ">=0.1 <1.0" },
+  "summary": "Star Wars TCG card data and decklists from swtcg-deckdb.com.",
+  "description": "Card data and public decklists from the community-run Star Wars TCG Deck Database.\n\nThe whole card database (10,891 cards) is published as one static document with no search endpoint, so it is declared as a scheduled catalogue endpoint: the platform reads it a few times a day, normalizes it once, and the deck builder searches it locally. Card art is composed from each record's set code and image fragment against the LackeyCCG image repository on GitHub, because the provider stores those two parts separately and never an absolute URL.\n\nOnly public decks are readable. Nothing is written back, and no viewer identity is sent upstream.",
+  "compatibility": {
+    "engine": ">=0.1 <1.0"
+  },
   "capabilities": {
     "version": "1",
-    "allowed": ["network"]
+    "allowed": [
+      "network"
+    ]
   },
-  "origins": ["swtcg-deckdb.com"],
+  "origins": [
+    "swtcg-deckdb.com",
+    "raw.githubusercontent.com"
+  ],
   "endpoints": [
     {
       "name": "deckById",
@@ -27,7 +34,9 @@
           "description": "The 6-character deck id from a /deck/<id> permalink."
         }
       ],
-      "auth": { "kind": "none" },
+      "auth": {
+        "kind": "none"
+      },
       "returns": "raw",
       "description": "One public deck: main list plus supply."
     },
@@ -37,7 +46,9 @@
       "method": "GET",
       "path": "/api/decks",
       "params": [],
-      "auth": { "kind": "none" },
+      "auth": {
+        "kind": "none"
+      },
       "returns": "raw",
       "description": "Summaries of every public deck. Card lists are not included."
     },
@@ -47,9 +58,155 @@
       "method": "GET",
       "path": "/api/starters",
       "params": [],
-      "auth": { "kind": "none" },
+      "auth": {
+        "kind": "none"
+      },
       "returns": "raw",
       "description": "The official starter decks, with full card lists."
+    },
+    {
+      "name": "userDecks",
+      "origin": "swtcg-deckdb.com",
+      "method": "GET",
+      "path": "/api/users/{userId}/decks",
+      "params": [
+        {
+          "name": "userId",
+          "location": "path",
+          "format": "token",
+          "required": true,
+          "description": "Opaque user id, as it appears on a deck summary's owner_id."
+        }
+      ],
+      "auth": {
+        "kind": "none"
+      },
+      "returns": "raw",
+      "description": "A user's public decks. Their private decks are never included."
+    },
+    {
+      "name": "cardDecks",
+      "origin": "swtcg-deckdb.com",
+      "method": "GET",
+      "path": "/api/card-decks",
+      "params": [
+        {
+          "name": "name",
+          "location": "query",
+          "format": "text",
+          "required": true,
+          "maxLength": 200,
+          "description": "Exact card name."
+        },
+        {
+          "name": "set",
+          "location": "query",
+          "format": "token",
+          "required": true,
+          "description": "Set code, e.g. AOTC."
+        }
+      ],
+      "auth": {
+        "kind": "none"
+      },
+      "returns": "raw",
+      "description": "Public decks that contain one specific card."
+    },
+    {
+      "name": "cardRatings",
+      "origin": "swtcg-deckdb.com",
+      "method": "GET",
+      "path": "/api/card-ratings",
+      "params": [
+        {
+          "name": "name",
+          "location": "query",
+          "format": "text",
+          "required": true,
+          "maxLength": 200,
+          "description": "Exact card name."
+        },
+        {
+          "name": "set",
+          "location": "query",
+          "format": "token",
+          "required": true,
+          "description": "Set code, e.g. AOTC."
+        }
+      ],
+      "auth": {
+        "kind": "none"
+      },
+      "returns": "raw",
+      "description": "Community rating summary for one card."
+    },
+    {
+      "name": "cardRatingsBulk",
+      "origin": "swtcg-deckdb.com",
+      "method": "GET",
+      "path": "/api/card-ratings/bulk",
+      "params": [],
+      "auth": {
+        "kind": "none"
+      },
+      "returns": "raw",
+      "description": "Rating summary for every rated card, keyed name|set."
+    },
+    {
+      "name": "tournaments",
+      "origin": "swtcg-deckdb.com",
+      "method": "GET",
+      "path": "/api/tournaments",
+      "params": [],
+      "auth": {
+        "kind": "none"
+      },
+      "returns": "raw",
+      "description": "Every tournament, ongoing and archived."
+    },
+    {
+      "name": "tournamentById",
+      "origin": "swtcg-deckdb.com",
+      "method": "GET",
+      "path": "/api/tournaments/{tournamentId}",
+      "params": [
+        {
+          "name": "tournamentId",
+          "location": "path",
+          "format": "token",
+          "required": true,
+          "description": "Opaque tournament id, as it appears in a deck's placements."
+        }
+      ],
+      "auth": {
+        "kind": "none"
+      },
+      "returns": "raw",
+      "description": "One tournament with its entrants and their decks."
+    },
+    {
+      "name": "providerStatus",
+      "origin": "swtcg-deckdb.com",
+      "method": "GET",
+      "path": "/api/config",
+      "params": [],
+      "auth": {
+        "kind": "none"
+      },
+      "returns": "raw",
+      "description": "Liveness probe. Returns a single debug flag."
+    },
+    {
+      "name": "cardCatalogue",
+      "origin": "swtcg-deckdb.com",
+      "method": "GET",
+      "path": "/static/cards.json",
+      "params": [],
+      "auth": {
+        "kind": "none"
+      },
+      "returns": "catalogue",
+      "description": "The entire card database in one document. Read on a schedule, never per player."
     }
   ],
   "deckImport": {
@@ -60,10 +217,28 @@
     "namePath": "name",
     "root": "cards",
     "entry": {
-      "count": { "path": "count", "transforms": ["number"], "default": 1, "required": false },
-      "match": { "path": "name", "transforms": ["trim"], "required": true }
+      "count": {
+        "path": "count",
+        "transforms": [
+          "number"
+        ],
+        "default": 1,
+        "required": false
+      },
+      "match": {
+        "path": "name",
+        "transforms": [
+          "trim"
+        ],
+        "required": true
+      }
     },
-    "partitions": [{ "root": "supply", "partitionId": "supply" }]
+    "partitions": [
+      {
+        "root": "supply",
+        "partitionId": "supply"
+      }
+    ]
   },
   "exposedApi": [
     {
@@ -73,20 +248,78 @@
       "params": {
         "type": "object",
         "fields": {
-          "deckId": { "schema": { "type": "string", "maxLength": 16 } }
+          "deckId": {
+            "schema": {
+              "type": "string",
+              "maxLength": 16
+            }
+          }
         }
       },
       "returns": {
         "type": "object",
         "fields": {
-          "name": { "schema": { "type": "string", "maxLength": 200 } },
-          "format": { "schema": { "type": "string", "maxLength": 60, "nullable": true }, "optional": true },
-          "pool": { "schema": { "type": "string", "maxLength": 60, "nullable": true }, "optional": true },
-          "side": { "schema": { "type": "string", "maxLength": 4, "nullable": true }, "optional": true },
-          "owner_username": { "schema": { "type": "string", "maxLength": 120, "nullable": true }, "optional": true },
-          "played_by": { "schema": { "type": "string", "maxLength": 120, "nullable": true }, "optional": true },
-          "is_public": { "schema": { "type": "boolean", "nullable": true }, "optional": true },
-          "created_at": { "schema": { "type": "string", "maxLength": 60, "nullable": true }, "optional": true },
+          "name": {
+            "schema": {
+              "type": "string",
+              "maxLength": 200
+            }
+          },
+          "format": {
+            "schema": {
+              "type": "string",
+              "maxLength": 60,
+              "nullable": true
+            },
+            "optional": true
+          },
+          "pool": {
+            "schema": {
+              "type": "string",
+              "maxLength": 60,
+              "nullable": true
+            },
+            "optional": true
+          },
+          "side": {
+            "schema": {
+              "type": "string",
+              "maxLength": 4,
+              "nullable": true
+            },
+            "optional": true
+          },
+          "owner_username": {
+            "schema": {
+              "type": "string",
+              "maxLength": 120,
+              "nullable": true
+            },
+            "optional": true
+          },
+          "played_by": {
+            "schema": {
+              "type": "string",
+              "maxLength": 120,
+              "nullable": true
+            },
+            "optional": true
+          },
+          "is_public": {
+            "schema": {
+              "type": "boolean",
+              "nullable": true
+            },
+            "optional": true
+          },
+          "created_at": {
+            "schema": {
+              "type": "string",
+              "maxLength": 60,
+              "nullable": true
+            },
+            "optional": true
+          },
           "cards": {
             "schema": {
               "type": "array",
@@ -94,9 +327,27 @@
               "items": {
                 "type": "object",
                 "fields": {
-                  "count": { "schema": { "type": "number", "integer": true, "min": 1, "max": 100 } },
-                  "name": { "schema": { "type": "string", "maxLength": 200 } },
-                  "setCode": { "schema": { "type": "string", "maxLength": 16 }, "optional": true }
+                  "count": {
+                    "schema": {
+                      "type": "number",
+                      "integer": true,
+                      "min": 1,
+                      "max": 100
+                    }
+                  },
+                  "name": {
+                    "schema": {
+                      "type": "string",
+                      "maxLength": 200
+                    }
+                  },
+                  "setCode": {
+                    "schema": {
+                      "type": "string",
+                      "maxLength": 16
+                    },
+                    "optional": true
+                  }
                 }
               }
             }
@@ -108,9 +359,27 @@
               "items": {
                 "type": "object",
                 "fields": {
-                  "count": { "schema": { "type": "number", "integer": true, "min": 1, "max": 100 } },
-                  "name": { "schema": { "type": "string", "maxLength": 200 } },
-                  "setCode": { "schema": { "type": "string", "maxLength": 16 }, "optional": true }
+                  "count": {
+                    "schema": {
+                      "type": "number",
+                      "integer": true,
+                      "min": 1,
+                      "max": 100
+                    }
+                  },
+                  "name": {
+                    "schema": {
+                      "type": "string",
+                      "maxLength": 200
+                    }
+                  },
+                  "setCode": {
+                    "schema": {
+                      "type": "string",
+                      "maxLength": 16
+                    },
+                    "optional": true
+                  }
                 }
               }
             },
@@ -124,15 +393,30 @@
       "name": "starterDecks",
       "summary": "List the official starter decks with their full card lists.",
       "endpoint": "starterDecks",
-      "params": { "type": "object", "fields": {} },
+      "params": {
+        "type": "object",
+        "fields": {}
+      },
       "returns": {
         "type": "array",
         "maxItems": 100,
         "items": {
           "type": "object",
           "fields": {
-            "name": { "schema": { "type": "string", "maxLength": 200 }, "optional": true },
-            "side": { "schema": { "type": "string", "maxLength": 4 }, "optional": true },
+            "name": {
+              "schema": {
+                "type": "string",
+                "maxLength": 200
+              },
+              "optional": true
+            },
+            "side": {
+              "schema": {
+                "type": "string",
+                "maxLength": 4
+              },
+              "optional": true
+            },
             "cards": {
               "schema": {
                 "type": "array",
@@ -140,9 +424,27 @@
                 "items": {
                   "type": "object",
                   "fields": {
-                    "count": { "schema": { "type": "number", "integer": true, "min": 1, "max": 100 } },
-                    "name": { "schema": { "type": "string", "maxLength": 200 } },
-                    "setCode": { "schema": { "type": "string", "maxLength": 16 }, "optional": true }
+                    "count": {
+                      "schema": {
+                        "type": "number",
+                        "integer": true,
+                        "min": 1,
+                        "max": 100
+                      }
+                    },
+                    "name": {
+                      "schema": {
+                        "type": "string",
+                        "maxLength": 200
+                      }
+                    },
+                    "setCode": {
+                      "schema": {
+                        "type": "string",
+                        "maxLength": 16
+                      },
+                      "optional": true
+                    }
                   }
                 }
               }
@@ -156,22 +458,586 @@
       "name": "publicDecks",
       "summary": "Browse summaries of every public deck. No card lists.",
       "endpoint": "publicDecks",
-      "params": { "type": "object", "fields": {} },
+      "params": {
+        "type": "object",
+        "fields": {}
+      },
       "returns": {
         "type": "array",
         "maxItems": 2000,
         "items": {
           "type": "object",
           "fields": {
-            "id": { "schema": { "type": "string", "maxLength": 16 } },
-            "name": { "schema": { "type": "string", "maxLength": 200 } },
-            "format": { "schema": { "type": "string", "maxLength": 60, "nullable": true }, "optional": true },
-            "pool": { "schema": { "type": "string", "maxLength": 60, "nullable": true }, "optional": true },
-            "side": { "schema": { "type": "string", "maxLength": 4, "nullable": true }, "optional": true },
-            "card_count": { "schema": { "type": "number", "integer": true, "min": 0, "max": 10000, "nullable": true }, "optional": true },
-            "owner_username": { "schema": { "type": "string", "maxLength": 120, "nullable": true }, "optional": true },
-            "played_by": { "schema": { "type": "string", "maxLength": 120, "nullable": true }, "optional": true },
-            "created_at": { "schema": { "type": "string", "maxLength": 60, "nullable": true }, "optional": true }
+            "id": {
+              "schema": {
+                "type": "string",
+                "maxLength": 16
+              }
+            },
+            "name": {
+              "schema": {
+                "type": "string",
+                "maxLength": 200
+              }
+            },
+            "format": {
+              "schema": {
+                "type": "string",
+                "maxLength": 60,
+                "nullable": true
+              },
+              "optional": true
+            },
+            "pool": {
+              "schema": {
+                "type": "string",
+                "maxLength": 60,
+                "nullable": true
+              },
+              "optional": true
+            },
+            "side": {
+              "schema": {
+                "type": "string",
+                "maxLength": 4,
+                "nullable": true
+              },
+              "optional": true
+            },
+            "card_count": {
+              "schema": {
+                "type": "number",
+                "integer": true,
+                "min": 0,
+                "max": 10000,
+                "nullable": true
+              },
+              "optional": true
+            },
+            "owner_username": {
+              "schema": {
+                "type": "string",
+                "maxLength": 120,
+                "nullable": true
+              },
+              "optional": true
+            },
+            "played_by": {
+              "schema": {
+                "type": "string",
+                "maxLength": 120,
+                "nullable": true
+              },
+              "optional": true
+            },
+            "created_at": {
+              "schema": {
+                "type": "string",
+                "maxLength": 60,
+                "nullable": true
+              },
+              "optional": true
+            }
+          }
+        }
+      },
+      "acceptsTableData": false
+    },
+    {
+      "name": "userDecks",
+      "summary": "List one user's public decks.",
+      "endpoint": "userDecks",
+      "params": {
+        "type": "object",
+        "fields": {
+          "userId": {
+            "schema": {
+              "type": "string",
+              "maxLength": 64
+            }
+          }
+        }
+      },
+      "returns": {
+        "type": "object",
+        "fields": {
+          "username": {
+            "schema": {
+              "type": "string",
+              "maxLength": 120,
+              "nullable": true
+            },
+            "optional": true
+          },
+          "decks": {
+            "schema": {
+              "type": "array",
+              "maxItems": 2000,
+              "items": {
+                "type": "object",
+                "fields": {
+                  "id": {
+                    "schema": {
+                      "type": "string",
+                      "maxLength": 16
+                    }
+                  },
+                  "name": {
+                    "schema": {
+                      "type": "string",
+                      "maxLength": 200
+                    }
+                  },
+                  "format": {
+                    "schema": {
+                      "type": "string",
+                      "maxLength": 60,
+                      "nullable": true
+                    },
+                    "optional": true
+                  },
+                  "pool": {
+                    "schema": {
+                      "type": "string",
+                      "maxLength": 60,
+                      "nullable": true
+                    },
+                    "optional": true
+                  },
+                  "side": {
+                    "schema": {
+                      "type": "string",
+                      "maxLength": 4,
+                      "nullable": true
+                    },
+                    "optional": true
+                  },
+                  "card_count": {
+                    "schema": {
+                      "type": "number",
+                      "integer": true,
+                      "min": 0,
+                      "max": 10000,
+                      "nullable": true
+                    },
+                    "optional": true
+                  },
+                  "owner_id": {
+                    "schema": {
+                      "type": "string",
+                      "maxLength": 64,
+                      "nullable": true
+                    },
+                    "optional": true
+                  },
+                  "owner_username": {
+                    "schema": {
+                      "type": "string",
+                      "maxLength": 120,
+                      "nullable": true
+                    },
+                    "optional": true
+                  },
+                  "played_by": {
+                    "schema": {
+                      "type": "string",
+                      "maxLength": 120,
+                      "nullable": true
+                    },
+                    "optional": true
+                  },
+                  "created_at": {
+                    "schema": {
+                      "type": "string",
+                      "maxLength": 60,
+                      "nullable": true
+                    },
+                    "optional": true
+                  },
+                  "badges": {
+                    "schema": {
+                      "type": "array",
+                      "maxItems": 20,
+                      "items": {
+                        "type": "string",
+                        "maxLength": 60
+                      }
+                    },
+                    "optional": true
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "acceptsTableData": false
+    },
+    {
+      "name": "cardDecks",
+      "summary": "List public decks that play a given card.",
+      "endpoint": "cardDecks",
+      "params": {
+        "type": "object",
+        "fields": {
+          "name": {
+            "schema": {
+              "type": "string",
+              "maxLength": 200
+            }
+          },
+          "set": {
+            "schema": {
+              "type": "string",
+              "maxLength": 16
+            }
+          }
+        }
+      },
+      "returns": {
+        "type": "array",
+        "maxItems": 2000,
+        "items": {
+          "type": "object",
+          "fields": {
+            "id": {
+              "schema": {
+                "type": "string",
+                "maxLength": 16
+              }
+            },
+            "name": {
+              "schema": {
+                "type": "string",
+                "maxLength": 200
+              }
+            },
+            "format": {
+              "schema": {
+                "type": "string",
+                "maxLength": 60,
+                "nullable": true
+              },
+              "optional": true
+            },
+            "pool": {
+              "schema": {
+                "type": "string",
+                "maxLength": 60,
+                "nullable": true
+              },
+              "optional": true
+            },
+            "side": {
+              "schema": {
+                "type": "string",
+                "maxLength": 4,
+                "nullable": true
+              },
+              "optional": true
+            },
+            "card_count": {
+              "schema": {
+                "type": "number",
+                "integer": true,
+                "min": 0,
+                "max": 10000,
+                "nullable": true
+              },
+              "optional": true
+            },
+            "owner_id": {
+              "schema": {
+                "type": "string",
+                "maxLength": 64,
+                "nullable": true
+              },
+              "optional": true
+            },
+            "owner_username": {
+              "schema": {
+                "type": "string",
+                "maxLength": 120,
+                "nullable": true
+              },
+              "optional": true
+            },
+            "played_by": {
+              "schema": {
+                "type": "string",
+                "maxLength": 120,
+                "nullable": true
+              },
+              "optional": true
+            },
+            "created_at": {
+              "schema": {
+                "type": "string",
+                "maxLength": 60,
+                "nullable": true
+              },
+              "optional": true
+            },
+            "badges": {
+              "schema": {
+                "type": "array",
+                "maxItems": 20,
+                "items": {
+                  "type": "string",
+                  "maxLength": 60
+                }
+              },
+              "optional": true
+            }
+          }
+        }
+      },
+      "acceptsTableData": false
+    },
+    {
+      "name": "cardRatings",
+      "summary": "Community rating summary for one card.",
+      "endpoint": "cardRatings",
+      "params": {
+        "type": "object",
+        "fields": {
+          "name": {
+            "schema": {
+              "type": "string",
+              "maxLength": 200
+            }
+          },
+          "set": {
+            "schema": {
+              "type": "string",
+              "maxLength": 16
+            }
+          }
+        }
+      },
+      "returns": {
+        "type": "object",
+        "fields": {
+          "average": {
+            "schema": {
+              "type": "number",
+              "integer": false,
+              "min": 0,
+              "max": 5,
+              "nullable": true
+            }
+          },
+          "count": {
+            "schema": {
+              "type": "number",
+              "integer": true,
+              "min": 0,
+              "max": 1000000
+            }
+          }
+        }
+      },
+      "acceptsTableData": false
+    },
+    {
+      "name": "tournaments",
+      "summary": "List every tournament, ongoing and archived.",
+      "endpoint": "tournaments",
+      "params": {
+        "type": "object",
+        "fields": {}
+      },
+      "returns": {
+        "type": "array",
+        "maxItems": 1000,
+        "items": {
+          "type": "object",
+          "fields": {
+            "id": {
+              "schema": {
+                "type": "string",
+                "maxLength": 32
+              }
+            },
+            "name": {
+              "schema": {
+                "type": "string",
+                "maxLength": 200
+              }
+            },
+            "date": {
+              "schema": {
+                "type": "string",
+                "maxLength": 32,
+                "nullable": true
+              },
+              "optional": true
+            },
+            "format": {
+              "schema": {
+                "type": "string",
+                "maxLength": 60,
+                "nullable": true
+              },
+              "optional": true
+            },
+            "pool": {
+              "schema": {
+                "type": "string",
+                "maxLength": 60,
+                "nullable": true
+              },
+              "optional": true
+            },
+            "status": {
+              "schema": {
+                "type": "string",
+                "maxLength": 16,
+                "nullable": true
+              },
+              "optional": true
+            },
+            "challonge_url": {
+              "schema": {
+                "type": "string",
+                "maxLength": 300,
+                "nullable": true
+              },
+              "optional": true
+            }
+          }
+        }
+      },
+      "acceptsTableData": false
+    },
+    {
+      "name": "tournamentById",
+      "summary": "One tournament, with its entrants and the ids of the decks they played.",
+      "endpoint": "tournamentById",
+      "params": {
+        "type": "object",
+        "fields": {
+          "tournamentId": {
+            "schema": {
+              "type": "string",
+              "maxLength": 32
+            }
+          }
+        }
+      },
+      "returns": {
+        "type": "object",
+        "fields": {
+          "id": {
+            "schema": {
+              "type": "string",
+              "maxLength": 32
+            }
+          },
+          "name": {
+            "schema": {
+              "type": "string",
+              "maxLength": 200
+            }
+          },
+          "date": {
+            "schema": {
+              "type": "string",
+              "maxLength": 32,
+              "nullable": true
+            },
+            "optional": true
+          },
+          "format": {
+            "schema": {
+              "type": "string",
+              "maxLength": 60,
+              "nullable": true
+            },
+            "optional": true
+          },
+          "pool": {
+            "schema": {
+              "type": "string",
+              "maxLength": 60,
+              "nullable": true
+            },
+            "optional": true
+          },
+          "status": {
+            "schema": {
+              "type": "string",
+              "maxLength": 16,
+              "nullable": true
+            },
+            "optional": true
+          },
+          "entrants": {
+            "schema": {
+              "type": "array",
+              "maxItems": 500,
+              "items": {
+                "type": "object",
+                "fields": {
+                  "id": {
+                    "schema": {
+                      "type": "string",
+                      "maxLength": 32
+                    }
+                  },
+                  "played_by": {
+                    "schema": {
+                      "type": "string",
+                      "maxLength": 120,
+                      "nullable": true
+                    },
+                    "optional": true
+                  },
+                  "placement": {
+                    "schema": {
+                      "type": "number",
+                      "integer": true,
+                      "min": 0,
+                      "max": 10000,
+                      "nullable": true
+                    },
+                    "optional": true
+                  },
+                  "deck_ids": {
+                    "schema": {
+                      "type": "array",
+                      "maxItems": 20,
+                      "items": {
+                        "type": "string",
+                        "maxLength": 16
+                      }
+                    },
+                    "optional": true
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "acceptsTableData": false
+    },
+    {
+      "name": "providerStatus",
+      "summary": "Cheap liveness check. Returns the provider's single debug flag.",
+      "endpoint": "providerStatus",
+      "params": {
+        "type": "object",
+        "fields": {}
+      },
+      "returns": {
+        "type": "object",
+        "fields": {
+          "debug": {
+            "schema": {
+              "type": "boolean"
+            },
+            "optional": true
           }
         }
       },
@@ -186,5 +1052,361 @@
     "maxConcurrent": 1
   },
   "license": "MIT",
-  "tags": ["cards", "tcg", "star-wars", "decklists"]
+  "tags": [
+    "cards",
+    "tcg",
+    "star-wars",
+    "decklists"
+  ],
+  "cardMapping": {
+    "root": "",
+    "identityField": "card_id",
+    "fields": {
+      "card_id": {
+        "path": "imageFrag",
+        "transforms": [
+          "trim"
+        ],
+        "required": true
+      },
+      "name": {
+        "path": "name",
+        "transforms": [
+          "trim"
+        ],
+        "required": true
+      },
+      "art": {
+        "path": "imageUrl"
+      },
+      "set": {
+        "path": "set",
+        "transforms": [
+          "trim"
+        ],
+        "default": ""
+      },
+      "set_name": {
+        "path": "setName",
+        "transforms": [
+          "trim"
+        ],
+        "default": ""
+      },
+      "side": {
+        "path": "side",
+        "transforms": [
+          "trim"
+        ],
+        "default": "N"
+      },
+      "card_type": {
+        "path": "type",
+        "transforms": [
+          "trim"
+        ],
+        "default": ""
+      },
+      "subtype": {
+        "path": "subtype",
+        "transforms": [
+          "trim"
+        ],
+        "default": ""
+      },
+      "cost": {
+        "path": "cost",
+        "transforms": [
+          "number"
+        ]
+      },
+      "speed": {
+        "path": "speed",
+        "transforms": [
+          "number"
+        ]
+      },
+      "power": {
+        "path": "power",
+        "transforms": [
+          "number"
+        ]
+      },
+      "health": {
+        "path": "health",
+        "transforms": [
+          "number"
+        ]
+      },
+      "rarity": {
+        "path": "rarity",
+        "transforms": [
+          "trim"
+        ],
+        "default": ""
+      },
+      "collector_number": {
+        "path": "number",
+        "transforms": [
+          "string"
+        ],
+        "default": ""
+      },
+      "text": {
+        "path": "text",
+        "transforms": [
+          "trim"
+        ],
+        "default": ""
+      },
+      "classification": {
+        "path": "classification",
+        "transforms": [
+          "trim"
+        ],
+        "default": ""
+      },
+      "banned": {
+        "path": "banned",
+        "transforms": [
+          "join"
+        ],
+        "joinSeparator": ", ",
+        "default": ""
+      },
+      "restricted": {
+        "path": "restricted",
+        "transforms": [
+          "join"
+        ],
+        "joinSeparator": ", ",
+        "default": ""
+      }
+    },
+    "artUrl": {
+      "field": "art",
+      "origin": "raw.githubusercontent.com",
+      "path": "/SWTCG/SWTCG-LACKEY/refs/heads/release/official/starwars/sets/setimages/{set}/{frag}.jpg",
+      "params": {
+        "set": "set",
+        "frag": "card_id"
+      }
+    }
+  },
+  "resources": [
+    {
+      "path": "textures/card-back.png",
+      "kind": "texture",
+      "name": "Card back",
+      "folder": "Card backs",
+      "credit": {
+        "origin": "own-work",
+        "title": "Procedural card back",
+        "creator": "DiceyTable",
+        "notes": "Generated by scripts/generate-card-back.mjs from arithmetic alone (Node built-ins). Contains no Star Wars, Decipher or Wizards of the Coast artwork and is not derived from any card scan."
+      },
+      "thumbnail": "textures/card-back.png"
+    },
+    {
+      "path": "materials/card-back.json",
+      "kind": "material",
+      "name": "Card back",
+      "folder": "Card backs",
+      "credit": {
+        "origin": "own-work",
+        "title": "Procedural card back",
+        "creator": "DiceyTable",
+        "notes": "Generated by scripts/generate-card-back.mjs from arithmetic alone (Node built-ins). Contains no Star Wars, Decipher or Wizards of the Coast artwork and is not derived from any card scan."
+      },
+      "thumbnail": "textures/card-back.png"
+    }
+  ],
+  "ui": {
+    "fields": [
+      {
+        "key": "card_id",
+        "label": "Card id",
+        "type": "text"
+      },
+      {
+        "key": "name",
+        "label": "Card name",
+        "type": "text"
+      },
+      {
+        "key": "art",
+        "label": "Card image",
+        "type": "text"
+      },
+      {
+        "key": "set",
+        "label": "Set code",
+        "type": "text"
+      },
+      {
+        "key": "set_name",
+        "label": "Set",
+        "type": "text"
+      },
+      {
+        "key": "side",
+        "label": "Side",
+        "type": "select",
+        "options": [
+          "L",
+          "D",
+          "N",
+          "Y"
+        ]
+      },
+      {
+        "key": "card_type",
+        "label": "Type",
+        "type": "select",
+        "options": [
+          "Character",
+          "Ground",
+          "Space",
+          "Space/Ground",
+          "Ground/Character",
+          "Space/Character",
+          "Space/Ground/Character",
+          "Battle",
+          "Mission",
+          "Equipment",
+          "Location",
+          "Resource",
+          "Subordinate",
+          "Event",
+          "Objective"
+        ]
+      },
+      {
+        "key": "subtype",
+        "label": "Subtype",
+        "type": "text"
+      },
+      {
+        "key": "cost",
+        "label": "Cost",
+        "type": "number"
+      },
+      {
+        "key": "speed",
+        "label": "Speed",
+        "type": "number"
+      },
+      {
+        "key": "power",
+        "label": "Power",
+        "type": "number"
+      },
+      {
+        "key": "health",
+        "label": "Health",
+        "type": "number"
+      },
+      {
+        "key": "rarity",
+        "label": "Rarity",
+        "type": "text"
+      },
+      {
+        "key": "collector_number",
+        "label": "Card number",
+        "type": "text"
+      },
+      {
+        "key": "text",
+        "label": "Card text",
+        "type": "text"
+      },
+      {
+        "key": "classification",
+        "label": "Classification",
+        "type": "text"
+      },
+      {
+        "key": "banned",
+        "label": "Banned in",
+        "type": "text"
+      },
+      {
+        "key": "restricted",
+        "label": "Restricted in",
+        "type": "text"
+      }
+    ],
+    "roles": {
+      "key": "card_id",
+      "title": "name",
+      "art": "art",
+      "group": "card_type",
+      "type": "card_type"
+    },
+    "columns": [
+      {
+        "fieldKey": "name",
+        "header": "Card"
+      },
+      {
+        "fieldKey": "card_type",
+        "header": "Type"
+      },
+      {
+        "fieldKey": "side",
+        "header": "Side"
+      },
+      {
+        "fieldKey": "cost",
+        "header": "Cost",
+        "align": "right"
+      },
+      {
+        "fieldKey": "speed",
+        "header": "Speed",
+        "align": "right"
+      },
+      {
+        "fieldKey": "power",
+        "header": "Power",
+        "align": "right"
+      },
+      {
+        "fieldKey": "health",
+        "header": "Health",
+        "align": "right"
+      },
+      {
+        "fieldKey": "rarity",
+        "header": "Rarity"
+      },
+      {
+        "fieldKey": "set",
+        "header": "Set"
+      }
+    ],
+    "stats": [
+      {
+        "kind": "histogram",
+        "fieldKey": "cost",
+        "label": "Cost curve"
+      },
+      {
+        "kind": "breakdown",
+        "fieldKey": "card_type",
+        "label": "Card type"
+      },
+      {
+        "kind": "breakdown",
+        "fieldKey": "side",
+        "label": "Side"
+      },
+      {
+        "kind": "breakdown",
+        "fieldKey": "rarity",
+        "label": "Rarity"
+      }
+    ]
+  }
 }

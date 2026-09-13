@@ -1,0 +1,6 @@
+{
+  "diffuseMap": "textures/card-back.png",
+  "useMetalness": true,
+  "metalness": 0,
+  "gloss": 0.35
+}
